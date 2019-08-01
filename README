@@ -1,0 +1,76 @@
+                                    README
+Logic of My Program:
+
+Master creates P2 and send the numbers 3...n to P2. P2 starts by memorizing 2.
+If P2 receives a number that is not a multiple of 2, it passes the number to P3
+(which is created by P2 the first time a non-multiple of 2 is received). For
+every Pi, if it receives a number that is not a multiple of i, is passes the
+number on to its right neighbor, if it has no right neighbor, Pi creates a new
+neighbor, Pj, and Pj remember the number given to it by Pi. A thread Pi,
+memorizes a number by writing it the global array Primes (See Questions 3 and 4
+for details). After the last number has been sent by Master, it send the END
+message to P2 and waits for P2 to exit. If a thread, Pi, receives the END
+message, it passes the message on to its right neighbor, Pj, and waits for Pj
+to exit. Then Pi exits. After every other thread has exited, Master is free to
+print out the data stored in Primes and then Master exits.
+
+Meaning, Initial Value, and Use of Variable:
+
+In the P threads: "Pnext" is a pointer to the next thread in the chain.
+Initialized to NULL (indicates last thread in chain). Pnext is used to to
+access the channel to send numbers to. "ID" is the subscript on the P threads
+(i.e., Pi would have ID=i), it is also the number memorized by the thread.
+"Index" keeps track of the index in Primes that the thread should write to (See
+Question 3). "channel" is the channel used by the thread to communicate with
+the previous thread.
+In the Master thread: "P2" points to the P2 thread and is used to access the
+channel between Master and P2. "nMax" is the max number to send to P2, it is
+how Master knows when to stop sending numbers. 
+
+
+Question 1:
+
+This problem can be solved using asynchronous channels if the buffer is FIFO.
+This works because messages are only ever sent in one direction. If a thread
+attempts to send a message before the previous message has been received, the
+messages may wait in the buffer before they are received. If the buffer is
+full, the sender waits until it is not full. If the buffer is empty the
+receiver waits until it is not empty. As long as the buffer is FIFO, the
+program will behave the same and the numbers will be passed in the same order.
+ 
+I tested my program with asynchronous channels and observed no issues. However,
+I could not find any documentation stating whether Thread Mentor channels use
+FIFO buffers or not.
+
+Question 2:
+
+This is trivial. If the last thread in the chain receives a number larger than
+the one memorized by the thread, there are several condition that must be true.
+a) The number is not a multiple of any of the previous threads, or it would not
+   have been passed on. And it could not be prime.
+b) If the last thread had previously received a prime number, it would not be
+   the last thread.
+c) The number is not a multiple of the number memorized by the last thread. If
+   it was, it would have to be at least twice (2x) the number memorized. 
+   Bertrand's postulate (proved by Chebyshev in 1852) states that for any
+   integer n>1, there exist at least one prime number p, such that n<p<2n.
+From these points we know that the last thread will always receive at least one
+prime number before it receives any non-primes. And if it is the last thread,
+it has yet to recieve any primes. Thus, the incoming number must be prime.
+
+Question 3:
+
+Each thread keeps track of the number of threads that existed before it was
+created (i.e., Master=0, P2=1, P3=2, P5=3, etc.). This number is recorded as
+the "Index" of the thread. When a thread memorizes a number, all it has to do
+is write that number to Primes[index-1] (minus one because master does not
+write to the array and indexes start at 0). This is consecutive, because each
+thread will memorize a number before it creates a new thread.
+
+Question 4:
+
+No mutex is needed to protect Primes, because none of the threads will attempt
+to access the same index in the array. Furthermore, the Master thread will not
+attempt to read the data in Primes until all other threads in the chain have
+terminated. 
+
